@@ -9,6 +9,7 @@ class Board:
         self.available_move_location = range(self.board_size * self.board_size)
         self.player = [0,1]
         self.current_player = 0
+        self.last_move = -1
 
     def move(self, location):
         if location not in self.available_move_location:
@@ -20,8 +21,8 @@ class Board:
 
         self.state[row_id,column_id,self.current_player] = 1
         self.available_move_location.remove(location)
-
         self.current_player = 1 - self.current_player
+        self.last_move = location
 
     def get_state(self,player_id):
         # Get state info from player_id's perspective
@@ -37,9 +38,10 @@ class Board:
         state[:, :, 0] = state[:, :, 1] - state[:, :, 2] # state[:, :, 0] = state[:, :, 1] + (-1) * state[:, :, 2]
         return state
 
-    def win_the_game(self,location):
+    def end_game(self):
         # return two value
-        # game end? win the game?
+        # game end? last player win the game?
+        location = self.last_move
         row_id = location // self.board_size
         column_id = location % self.board_size
         n = self.win_row_size
