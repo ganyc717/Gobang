@@ -40,7 +40,7 @@ class Board:
 
     def end_game(self):
         # return two value
-        # game end? last player win the game?
+        # game end? winner ?
         location = self.last_move
         row_id = location // self.board_size
         column_id = location % self.board_size
@@ -57,11 +57,11 @@ class Board:
         # horizontal
         for i in range(column_id - left_bound_limit, column_id + right_bound_limit - (n - 1) + 1):
             if np.sum(state[row_id,i:i + n]) > n - 1:
-                return True,True
+                return True,1 - self.current_player
         # vertical
         for i in range(row_id - top_bound_limit, row_id + bottom_bound_limit - (n - 1) + 1):
             if np.sum(state[i:i + n, column_id]) > n - 1:
-                return True,True
+                return True,1 - self.current_player
         # +45 degree
         north_east_limit = min(right_bound_limit, top_bound_limit)
         south_west_limit = min(bottom_bound_limit, left_bound_limit)
@@ -74,7 +74,7 @@ class Board:
                 for column in range(i, i + n):
                     sum_ += state[total - column, column]
                 if sum_ > n - 1:
-                    return True,True
+                    return True,1 - self.current_player
         # -45 degree
         north_west_limit = min(left_bound_limit, top_bound_limit)
         south_easy_limit = min(bottom_bound_limit, right_bound_limit)
@@ -87,7 +87,7 @@ class Board:
                 for row in range(i, i + n):
                     sum_ += state[row, total + row]
                 if sum_ > n - 1:
-                    return True,True
+                    return True,1 - self.current_player
         if len(self.available_move_location) == 0:
-            return True, False
-        return False, False
+            return True, -1
+        return False, -1
