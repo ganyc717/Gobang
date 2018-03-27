@@ -6,7 +6,12 @@ class NN_evaluation:
     def __init__(self):
         self.board_size = cfg.board_size
         self.input = tf.placeholder(tf.float32,[None, self.board_size, self.board_size, 3])
-        with slim.arg_scope([slim.conv2d], padding='SAME',
+        #prob and value from mcts search
+        self.input_mcts_prob = tf.placeholder(tf.float32,[None, self.board_size, self.board_size])
+        self.mcts_value = tf.placeholder(tf.float32,[None, 1])
+        self.lr = cfg.learning_rate
+
+        with slim.arg_scope([slim.conv2d,slim.fully_connected],
                             weights_initializer=tf.truncated_normal_initializer(stddev=0.01),
                             weights_regularizer=slim.l2_regularizer(0.0005)):
             net = slim.conv2d(self.input, 32, [3, 3], 1, scope='conv1')
@@ -17,10 +22,20 @@ class NN_evaluation:
 
             action_prob = slim.conv2d(net, 4, [3, 3], 1, scope='action_prob_conv1')
             action_prob = slim.flatten(action_prob, scope='action_prob_flat2')
-            action_prob = slim.fully_connected(action_prob,self.board_size * self.board_size,weights_regularizer=slim.l2_regularizer(0.0005),scope = "action_prob_fc3")
+            action_prob = slim.fully_connected(action_prob,self.board_size * self.board_size,scope = "action_prob_fc3")
             self.action_prob = tf.nn.softmax(action_prob)
 
             evalutaion = slim.conv2d(net, 8, [3, 3], 1, scope='evalutaion_conv1')
             evalutaion = slim.flatten(evalutaion, scope='evalutaion_flat2')
-            evalutaion = slim.fully_connected(evalutaion, 64,weights_regularizer=slim.l2_regularizer(0.0005),scope="evalutaion_fc3")
-            self.evalutaion = slim.fully_connected(evalutaion, 1,activation_fn = tf.nn.tanh,weights_regularizer=slim.l2_regularizer(0.0005), scope="evalutaion_fc4")
+            evalutaion = slim.fully_connected(evalutaion, 64,scope="evalutaion_fc3")
+            self.evalutaion = slim.fully_connected(evalutaion, 1,activation_fn = tf.nn.tanh, scope="evalutaion_fc4")
+
+        # Calculate cross entropy loss
+        y = tf.reshape(self.input_mcts_prob,[-1,self.board_size * self.board_size])
+        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y * tf.log(self.action_prob), axis = 1))
+        # Calculate value loss
+        value_loss = tf.reduce_mean(tf.square(self.evalutaion - self.mcts_value))
+
+        self.loss = value_loss + cross_entropy
+        self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
+
