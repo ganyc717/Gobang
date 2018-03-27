@@ -1,6 +1,8 @@
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
+import numpy as np
 import config as cfg
+
 
 class NN_evaluation:
     def __init__(self):
@@ -38,4 +40,20 @@ class NN_evaluation:
 
         self.loss = value_loss + cross_entropy
         self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
+
+        self.session = tf.Session()
+        self.session.run(tf.global_variables_initializer())
+
+    def evaluate(self,board):
+        input_state = board.get_state(board.current_player)
+        input_state = np.reshape(input_state,[1,self.board_size,self.board_size,3])
+        probs,state_value = self.session.run([self.action_prob,self.evalutaion],feed_dict={self.input:input_state})
+
+        probs = np.reshape(probs,[-1])
+        action = board.available_move_location
+        action_prob = [probs[i] for i in action]
+
+        action_prob = zip(action,action_prob)
+        state_value = np.reshape(state_value,[-1])
+        return action_prob,state_value
 

@@ -108,7 +108,7 @@ class MC_Tree:
                 break
         # use your evaluation function(Neural network) to estimate a priori_probability at this state
         # and the value for this leaf state, this is from current player's perspective
-        action_probs, state_value = self.evaluation_fn(board.get_state(board.current_player))
+        action_probs, state_value = self.evaluation_fn(board)
         game_end,winner = board.end_game()
         if game_end:
             if winner == board.current_player:
@@ -134,7 +134,6 @@ class MC_Tree:
 
 class MCT_player:
     def __init__(self, evaluation_fn, self_play = True):
-        #self.policy_fn = policy_fn
         self.evaluation_fn = evaluation_fn
         self.mc_tree = MC_Tree(self.evaluation_fn)
         self.search_times_per_move = cfg.search_times_per_move
