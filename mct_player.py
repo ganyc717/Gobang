@@ -1,5 +1,15 @@
 import config as cfg
 import numpy as np
+import copy
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+
+def average_visit_prob(x):
+    return (x + 1) / (np.sum(x) + x.shape[0])
+
 
 class Node:
     def __init__(self, parent = None, priori_probability = 0.0):
@@ -65,11 +75,21 @@ class Node:
     def greedy_select(self):
         return self.ε_select(ε = 0)
 
-
 class MC_Tree:
     def __init__(self, policy_fn, evaluation_fn):
         self.root = Node()
         self.evaluation_fn = evaluation_fn
+
+    def update_with_move(self, move):
+        """Step forward in the tree, keeping everything we already know
+        about the subtree.
+        """
+        if move in self.root.children:
+            self.root = self.root.children[last_move]
+            self.root.parent = None
+        else:
+            #refresh the all tree
+            self.root = Node()
 
     def search(self, board):
         # Monte Carlo Tree Search
@@ -113,25 +133,37 @@ class MC_Tree:
         current_node.update_value_backward(-state_value)
 
 class MCT_player:
-    def __init__(self,policy_fn,evaluation_fn):
-        self.policy_fn = policy_fn
+    def __init__(self, evaluation_fn, self_play = True):
+        #self.policy_fn = policy_fn
         self.evaluation_fn = evaluation_fn
-        self.mc_tree = MC_Tree()
+        self.mc_tree = MC_Tree(self.evaluation_fn)
+        self.search_times_per_move = cfg.search_times_per_move
+        self.self_play = self_play
 
-
-def ε_select(child):
-    ε = cfg.ε
-    num = len(child)
-    assert (num > 0)
-    values = list(child.values())
-    max_value = max(values)
-
-    p = np.zeros([num])
-    for i in range(num):
-        if values[i] == max_value:
-            p[i] = (1 - ε + ε / num)
+    def next_action(self,board):
+        #return next action
+        if len(board.available_move_location) == 0:
+            print("no next action, it is tie game")
+            return None
         else:
-            p[i] = (ε / num)
-    p = p / sum(p)
-    action = np.random.choice(list(child.keys()), 1, p=p)[0]
-    return action, child[action]
+            for i in range(self.search_times_per_move):
+                # search the mc tree and generate the visit_num and reward value for each node
+                # the visit num refer to posterior probability, more num a node visited, a big
+                # probability the node will take.
+                board_temp = copy.deepcopy(board)
+                self.mc_tree.search(board_temp)
+            action= list(self.mc_tree.root.children.keys())
+            visit_num = [visit.visit for visit in list(self.mc_tree.root.children.values())]
+            probs = softmax(np.array(visit_num))
+            # maybe the prob is positive proportion with visit_num is better?
+            # prob = average_visit_prob(np.array(visit_num))
+            if self.self_play:
+                # add Dirichlet Noise for exploration (needed for
+                # self-play training)
+                move = np.random.choice(action,p=0.75 * probs + 0.25 * np.random.dirichlet(0.3 * np.ones(len(probs))))
+                self.mc_tree.update_with_move(move)
+            else:
+                move = np.random.choice(action, p=probs)
+                # refresh the all tree
+                self.mc_tree.update_with_move(-1)
+            return move
