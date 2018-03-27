@@ -6,8 +6,14 @@ class Board:
         self.board_size = board_size
         self.win_row_size = win_row_size
         self.state = np.zeros([self.board_size,self.board_size,2])
-        self.available_move_location = range(self.board_size * self.board_size)
+        self.available_move_location = list(range(self.board_size * self.board_size))
         self.player = [0,1]
+        self.current_player = 0
+        self.last_move = -1
+
+    def refresh(self):
+        self.state = np.zeros([self.board_size, self.board_size, 2])
+        self.available_move_location = list(range(self.board_size * self.board_size))
         self.current_player = 0
         self.last_move = -1
 

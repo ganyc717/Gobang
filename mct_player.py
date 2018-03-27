@@ -51,7 +51,10 @@ class Node:
         # and negative related with the number this node has been visited
         # Neighborhood node also contribute to this value
         # self.reward means the Exploitation value
-        u = self.c_puct * self.prio_p * (np.sqrt(self._parent.visit) / (1 + self.visit))
+        if self.parent is None:
+            u = self.c_puct * self.prio_p / (1 + self.visit)
+        else:
+            u = self.c_puct * self.prio_p * (np.sqrt(self.parent.visit) / (1 + self.visit))
         return self.reward + u
 
     def ε_select(self,ε = cfg.ε):
@@ -59,7 +62,8 @@ class Node:
         assert(ε <= 1)
         num = len(self.children)
         assert(num > 0)
-        values = list(self.children.values())
+
+        values = [node.get_node_value() for node in self.children.values()]
         max_value = max(values)
 
         p = np.zeros([num])
@@ -69,14 +73,15 @@ class Node:
             else:
                 p[i] = (ε / num)
         p = p / sum(p)
-        action = np.random.choice(self.children.keys(),1,p = p)[0]
+
+        action = np.random.choice(list(self.children.keys()),1,p = p)[0]
         return action, self.children[action]
 
     def greedy_select(self):
         return self.ε_select(ε = 0)
 
 class MC_Tree:
-    def __init__(self, policy_fn, evaluation_fn):
+    def __init__(self, evaluation_fn):
         self.root = Node()
         self.evaluation_fn = evaluation_fn
 
@@ -85,7 +90,7 @@ class MC_Tree:
         about the subtree.
         """
         if move in self.root.children:
-            self.root = self.root.children[last_move]
+            self.root = self.root.children[move]
             self.root.parent = None
         else:
             #refresh the all tree
@@ -139,8 +144,8 @@ class MCT_player:
         self.search_times_per_move = cfg.search_times_per_move
         self.self_play = self_play
 
-    def next_action(self,board):
-        #return next action
+    def next_action_analyze(self,board):
+        # search the tree, get next action probs and current state value
         if len(board.available_move_location) == 0:
             print("no next action, it is tie game")
             return None
@@ -156,13 +161,22 @@ class MCT_player:
             probs = softmax(np.array(visit_num))
             # maybe the prob is positive proportion with visit_num is better?
             # prob = average_visit_prob(np.array(visit_num))
+            return action, probs, self.mc_tree.root.reward
+
+    def go_next_action(self,board):
+        # select next action and go it
+        end,_ = board.end_game()
+        if end:
+            return None
+        else:
+            actions, probs, _ = self.next_action_analyze(board)
             if self.self_play:
                 # add Dirichlet Noise for exploration (needed for
                 # self-play training)
-                move = np.random.choice(action,p=0.75 * probs + 0.25 * np.random.dirichlet(0.3 * np.ones(len(probs))))
+                move = np.random.choice(actions,p=0.75 * probs + 0.25 * np.random.dirichlet(0.3 * np.ones(len(probs))))
                 self.mc_tree.update_with_move(move)
             else:
-                move = np.random.choice(action, p=probs)
+                move = np.random.choice(actions, p=probs)
                 # refresh the all tree
                 self.mc_tree.update_with_move(-1)
             return move

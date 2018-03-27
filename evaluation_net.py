@@ -4,7 +4,7 @@ import numpy as np
 import config as cfg
 
 
-class NN_evaluation:
+class evaluationNet:
     def __init__(self):
         self.board_size = cfg.board_size
         self.input = tf.placeholder(tf.float32,[None, self.board_size, self.board_size, 3])
@@ -40,7 +40,7 @@ class NN_evaluation:
 
         self.loss = value_loss + cross_entropy
         self.train_op = tf.train.AdamOptimizer(learning_rate=self.lr).minimize(self.loss)
-
+        self.saver = tf.train.Saver()
         self.session = tf.Session()
         self.session.run(tf.global_variables_initializer())
 
@@ -56,4 +56,3 @@ class NN_evaluation:
         action_prob = zip(action,action_prob)
         state_value = np.reshape(state_value,[-1])
         return action_prob,state_value
-
