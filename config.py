@@ -1,4 +1,4 @@
-board_size = 10
+board_size = 14
 win_row_size = 5
 
 c_puct = 5.0
