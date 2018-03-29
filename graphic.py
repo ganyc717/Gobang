@@ -16,6 +16,7 @@ class graphicBoard(Board):
         self.canvas.pack()
 
         for i in range(cfg.board_size):
+            # 50 board margin
             self.canvas.create_line(50 + i * self.block_size, 50, 50 + i * self.block_size, 50 + self.board_width,
                                     width=2)
             self.canvas.create_line(50, 50 + i * self.block_size, 50 + self.board_width, 50 + i * self.block_size,
@@ -38,13 +39,15 @@ class graphicBoard(Board):
     def draw_next_piece_by_click(self,event):
         x = event.x - 50
         y = event.y - 50
-        print(x,y)
         if x < 0 or y < 0 or x > self.board_width or y > self.board_width:
             # the click out of the board
             return
         x = round(x / self.block_size)
         y = round(y / self.block_size)
         self.draw_piece(x,y)
+        end,winner = self.end_game()
+        if end:
+            print("end winner is ",winner)
 
 
 

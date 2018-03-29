@@ -47,12 +47,13 @@ class Board:
     def end_game(self):
         # return two value
         # game end? winner ?
+
         location = self.last_move
         row_id = location // self.board_size
         column_id = location % self.board_size
         n = self.win_row_size
 
-        state = self.state[:,:,self.current_player]
+        state = self.state[:,:,1 - self.current_player]
 
         left_bound_limit = min(n - 1, column_id)
         right_bound_limit = min(n - 1, self.board_size - 1 - column_id)
